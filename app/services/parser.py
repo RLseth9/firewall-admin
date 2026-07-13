@@ -1,0 +1,85 @@
+from app.models.iptables import Condition, Regle, Chaine, Table
+from typing import List
+
+
+def parser_iptables_save(texte: str) -> List[Table]:
+    tables = []
+    table_courante = None
+    compteur_regle_id = 1
+
+    lignes = texte.strip().split("\n")
+
+    for ligne in lignes:
+        ligne = ligne.strip()
+
+        if not ligne or ligne.startswith("#"):
+            continue
+
+        if ligne.startswith("*"):
+            nom_table = ligne[1:]
+            table_courante = Table(nom=nom_table, chaines=[])
+            tables.append(table_courante)
+
+        elif ligne.startswith(":"):
+            sans_deux_points = ligne[1:]
+            morceaux = sans_deux_points.split()
+            nom_chaine = morceaux[0]
+            policy = morceaux[1]
+            nouvelle_chaine = Chaine(nom=nom_chaine, policy_defaut=policy, regles=[])
+            table_courante.chaines.append(nouvelle_chaine)
+
+        elif ligne.startswith("-A"):
+            morceaux = ligne.split()
+            nom_chaine_cible = morceaux[1]
+
+            conditions = []
+            action = None
+            negation_en_attente = False
+
+            i = 2
+            while i < len(morceaux):
+                token = morceaux[i]
+
+                if token == "!":
+                    negation_en_attente = True
+                    i += 1
+                    continue
+
+                if token == "-j":
+                    action = morceaux[i + 1]
+                    i += 2
+                    continue
+
+                type_condition = token.lstrip("-")
+                valeur = morceaux[i + 1]
+
+                if negation_en_attente:
+                    valeur = "! " + valeur
+                    negation_en_attente = False
+
+                conditions.append(Condition(type=type_condition, valeur=valeur))
+                i += 2
+
+            chaine_cible = None
+            for c in table_courante.chaines:
+                if c.nom == nom_chaine_cible:
+                    chaine_cible = c
+                    break
+
+            position = len(chaine_cible.regles) + 1
+
+            nouvelle_regle = Regle(
+                id=compteur_regle_id,
+                chaine=nom_chaine_cible,
+                action=action,
+                position=position,
+                conditions=conditions
+            )
+
+            chaine_cible.regles.append(nouvelle_regle)
+            compteur_regle_id += 1
+
+        elif ligne == "COMMIT":
+            table_courante = None
+
+    return tables
