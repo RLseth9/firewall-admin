@@ -1,5 +1,6 @@
 from app.models.iptables import Condition, Regle, Chaine, Table
 from typing import List
+import   shlex
 
 
 def parser_iptables_save(texte: str) -> List[Table]:
@@ -29,7 +30,9 @@ def parser_iptables_save(texte: str) -> List[Table]:
             table_courante.chaines.append(nouvelle_chaine)
 
         elif ligne.startswith("-A"):
-            morceaux = ligne.split()
+          #  morceaux = ligne.split()
+            morceaux = shlex.split(ligne) 
+
             nom_chaine_cible = morceaux[1]
 
             conditions = []
@@ -51,14 +54,22 @@ def parser_iptables_save(texte: str) -> List[Table]:
                     continue
 
                 type_condition = token.lstrip("-")
-                valeur = morceaux[i + 1]
-
-                if negation_en_attente:
-                    valeur = "! " + valeur
+                valeur_existe = (i +1 < len(morceaux)) and (not morceaux[i + 1].startswith("-"))
+                
+                if valeur_existe:
+                    valeur = morceaux[i + 1]
+                    if negation_en_attente:
+                        valeur = "! " + valeur
+                        negation_en_attente = False
+                    conditions.append(Condition(type=type_condition, valeur=valeur))
+                    i += 2
+                else:
+                    # Option "drapeau" sans valeur (ex: --random-fully, --physdev-is-bridged)
+                    conditions.append(Condition(type=type_condition, valeur=""))
                     negation_en_attente = False
+                    i += 1
+                 
 
-                conditions.append(Condition(type=type_condition, valeur=valeur))
-                i += 2
 
             chaine_cible = None
             for c in table_courante.chaines:
