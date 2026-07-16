@@ -1,3 +1,7 @@
+"""
+    transformation de sortie de iptable-save en objet python 
+"""
+
 from app.models.iptables import Condition, Regle, Chaine, Table
 from typing import List
 import   shlex
