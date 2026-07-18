@@ -2,7 +2,7 @@
     transformation de sortie de iptable-save en objet python 
 """
 
-from app.models.iptables import Condition, Regle, Chaine, Table
+from app.models.iptables import ResumeChaine,Condition, Regle, Chaine, Table
 from typing import List
 import   shlex
 
@@ -98,3 +98,23 @@ def parser_iptables_save(texte: str) -> List[Table]:
             table_courante = None
 
     return tables
+
+def obtenir_resume_chaines(tables: list) -> list:
+    """
+    Construit un resume leger (table, chaine, policy, nombre de regles)
+    a partir de la liste complete des objets Table.
+    Utile pour peupler une interface sans transferer tout le detail.
+    """
+    resumes = []
+
+    for table in tables:
+        for chaine in table.chaines:
+            resume = ResumeChaine(
+                table=table.nom,
+                nom_chaine=chaine.nom,
+                policy_defaut=chaine.policy_defaut,
+                nombre_regles=len(chaine.regles)
+            )
+            resumes.append(resume)
+
+    return resumes
