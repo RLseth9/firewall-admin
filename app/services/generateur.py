@@ -74,19 +74,19 @@ def generer_iptables_restore(tables: list[Table]) -> str:
     return "\n".join(lignes) + "\n"
 def generer_commande_regle_unique(regle: Regle, mode: str) -> list[str]:
     """
-    Genere une commande iptables complete (sous forme de LISTE d'arguments,
-    pas une chaine de texte) pour ajouter ou supprimer UNE SEULE regle.
-
-    mode doit valoir "ajouter" ou "supprimer".
-    Retourne une liste utilisable directement par subprocess.run(),
-    ex: ["iptables", "-A", "INPUT", "-p", "tcp", "--dport", "22", "-j", "ACCEPT"]
+    Genere une commande iptables complet pour ajouter ou supprimer UNE SEULE regle.
+    mode doit etre "ajouter"/"supprimer".
+    cette fonction retourne  une liste utilisable directement par subprocess.run(), par exmple
+     ["iptables", "-A", "INPUT", "-p", "tcp", "--dport", "22", "-j", "ACCEPT"]
     """
     if mode == "ajouter":
         drapeau_action = "-A"
     elif mode == "supprimer":
         drapeau_action = "-D"
+    elif mode == "verifier":
+        drapeau_action = "-C"    
     else:
-        raise ValueError(f"mode invalide: {mode} (attendu: 'ajouter' ou 'supprimer')")
+        raise ValueError(f"mode invalide: {mode} (attendu: 'ajouter' ou 'supprimer' ou 'verifier')")
 
     commande = ["iptables", drapeau_action, regle.chaine]
     commande += _generer_morceaux_conditions(regle)

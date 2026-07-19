@@ -103,7 +103,7 @@ def obtenir_resume_chaines(tables: list) -> list:
     """
     Construit un resume leger (table, chaine, policy, nombre de regles)
     a partir de la liste complete des objets Table.
-    Utile pour peupler une interface sans transferer tout le detail.
+   
     """
     resumes = []
 
@@ -118,3 +118,29 @@ def obtenir_resume_chaines(tables: list) -> list:
             resumes.append(resume)
 
     return resumes
+
+def regle_existe_deja(nouvelle_regle: Regle, tables: list) -> bool:
+    """
+    Verifie si une regle avec le meme contenu (chaine, action, conditions)
+    existe deja dans la configuration actuelle. L'id et la position
+    ne sont pas pris en compte, seul le contenu reel compte pour iptables.
+    """
+    for table in tables:
+        for chaine in table.chaines:
+            for regle_existante in chaine.regles:
+                if _regles_identiques(nouvelle_regle, regle_existante):
+                    return True
+    return False
+
+
+def _regles_identiques(regle_a: Regle, regle_b: Regle) -> bool:
+    """Compare deux regles par leur contenu reel (chaine, action, conditions), pas par id/position."""
+    if regle_a.chaine != regle_b.chaine:
+        return False
+    if regle_a.action != regle_b.action:
+        return False
+
+    conditions_a = {(c.type, c.valeur) for c in regle_a.conditions}
+    conditions_b = {(c.type, c.valeur) for c in regle_b.conditions}
+
+    return conditions_a == conditions_b

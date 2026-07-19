@@ -79,3 +79,23 @@ def supprimer_regle_locale(regle: Regle) -> None:
         )
     except subprocess.CalledProcessError as erreur:
         raise IptablesError(f"Erreur lors de la suppression de la regle: {erreur.stderr}") from erreur
+    
+
+    
+
+def regle_existe_deja_systeme(regle: Regle) -> bool:
+    """
+    Demande DIRECTEMENT a iptables si une regle equivalente existe deja,
+    via 'iptables -C' (Check). Plus fiable qu'une comparaison de texte,
+    car le noyau gere lui-meme la normalisation (ex: echo-request -> 8).
+    """
+    commande = generer_commande_regle_unique(regle, mode="verifier")
+
+    resultat = subprocess.run(
+        commande,
+        capture_output=True,
+        text=True,
+        check=False
+    )
+
+    return resultat.returncode == 0

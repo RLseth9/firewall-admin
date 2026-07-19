@@ -9,8 +9,9 @@ from app.services.executeur import (
     appliquer_regles_locales,
     ajouter_regle_locale,
     supprimer_regle_locale,
+    regle_existe_deja_systeme,
 )
-from app.services.parser import parser_iptables_save, obtenir_resume_chaines
+from app.services.parser import parser_iptables_save, obtenir_resume_chaines,regle_existe_deja
 from app.services.generateur import generer_iptables_restore, generer_commande_regle_unique
 from app.models.iptables import Table, Regle
 
@@ -39,6 +40,9 @@ def ajouter_une_regle(regle: Regle):
     AJOUT CIBLE : ajoute une seule regle, sans toucher au reste
     de la configuration actuelle. Usage quotidien.
     """
+    if regle_existe_deja_systeme(regle):
+        return {"message": "Cette regle existe deja, aucune action effectuee"}
+
     ajouter_regle_locale(regle)
     return {"message": "Regle ajoutee avec succes"}
 
@@ -80,3 +84,17 @@ def apercu_commande_regle(regle: Regle, mode: str):
     """
     commande = generer_commande_regle_unique(regle, mode=mode)
     return {"commande": " ".join(commande)}
+@router.post("/local/regles/une")
+def ajouter_une_regle(regle: Regle):
+    """
+    AJOUT CIBLE : ajoute une seule regle, sans toucher au reste
+    de la configuration actuelle. Refuse si une regle identique existe deja.
+    """
+    texte_brut = lire_regles_locales()
+    tables = parser_iptables_save(texte_brut)
+
+    if regle_existe_deja(regle, tables):
+        return {"message": "Cette regle existe deja, aucune action effectuee"}
+
+    ajouter_regle_locale(regle)
+    return {"message": "Regle ajoutee avec succes"}
